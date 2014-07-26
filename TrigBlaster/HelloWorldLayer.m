@@ -24,6 +24,8 @@ const float OrbiterSpeed = 120.0f;
 const float OrbiterRadius = 60.0f;
 const float OrbiterCollisionRadius = 20.0f;
 
+const CFTimeInterval DarkenDuration = 2.0;
+
 @implementation HelloWorldLayer
 {
     CGSize _winSize;
@@ -476,10 +478,14 @@ const float OrbiterCollisionRadius = 20.0f;
         
         [self addChild:_gameOverLabel];
     }else{
-        if (_darkenLayer.opacity < 200) {
-            float newOpacity = fminf(200.0f, _darkenLayer.opacity + 255.0f * dt);
-            _darkenLayer.opacity = newOpacity;
+        _gameOverElepsed += dt;
+        if (_gameOverElepsed < DarkenDuration) {
+            float t = _gameOverElepsed /DarkenDuration;
+            t = sinf(t * M_PI_2);
+            _darkenLayer.opacity = 200.0f * t;
         }
+        float y = fabsf(cosf(_gameOverElepsed * 3.0)) * 50.0f;
+        _gameOverLabel.position = ccp(_gameOverLabel.position.x, _winSize.height/2.0f + y);
     }
 }
 
