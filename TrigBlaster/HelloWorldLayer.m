@@ -84,6 +84,9 @@ const float MaxPlayerSpeed = 200.0f;
     newY = MIN(_winSize.height, MAX(newY, 0));
     
     _playerSprite.position = ccp(newX, newY);
+    
+    float angle = atan2f(_playerSpeedY, _playerSpeedX);
+    _playerSprite.rotation = 90.0f - CC_RADIANS_TO_DEGREES(angle);
 }
 
 @end
