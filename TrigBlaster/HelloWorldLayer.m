@@ -16,6 +16,9 @@ const float PlayerCollisionRadius = 10.0f;
 const float CannonCollisionDamping = 0.8f;
 const float CannonCollisionSpeed = 200.0f;
 
+const float Margin = 20.0f;
+const float PlayerMissileSpeed = 300.0f;
+
 @implementation HelloWorldLayer
 {
     CGSize _winSize;
@@ -44,6 +47,10 @@ const float CannonCollisionSpeed = 200.0f;
     CCDrawNode *_cannonHealthBar;
     
     float _playerSpin;
+    
+    CCSprite *_playerMissileSprite;
+    CGPoint _touchLocation;
+    CFTimeInterval _touchTime;
 }
 
 + (CCScene *)scene
@@ -92,6 +99,12 @@ const float CannonCollisionSpeed = 200.0f;
         _cannonHP = MaxHP;
         
         [[SimpleAudioEngine sharedEngine] preloadEffect:@"Collision.wav"];
+        [[SimpleAudioEngine sharedEngine] preloadEffect:@"Shoot.wav"];
+        
+        self.touchEnabled = YES;
+        _playerMissileSprite = [CCSprite spriteWithFile:@"PlayerMissile.png"];
+        _playerMissileSprite.visible = NO;
+        [self addChild:_playerMissileSprite];
     }
     return self;
 }
@@ -287,6 +300,80 @@ const float CannonCollisionSpeed = 200.0f;
         _cannonHP = MAX(0, _cannonHP - 5);
         
         _playerSpin = 180.0f * 2.5f;
+    }
+}
+
+
+- (void)ccTouchesBegan:(NSSet *)touches withEvent:(UIEvent *)event
+{
+    UITouch *touch = [touches anyObject];
+    CGPoint location = [[CCDirector sharedDirector] convertToGL:[touch locationInView:[touch view]]];
+    _touchLocation = location;
+    _touchTime = CACurrentMediaTime();
+}
+
+- (void)ccTouchesEnded:(NSSet *)touches withEvent:(UIEvent *)event
+{
+    if (CACurrentMediaTime() - _touchTime < 0.3 && !_playerMissileSprite.visible) {
+        UITouch *touch = [touches anyObject];
+        CGPoint location = [[CCDirector sharedDirector] convertToGL:[touch locationInView:[touch view]]];
+        CGPoint diff = ccpSub(location, _touchLocation);
+        if (ccpLength(diff) > 4.0f) {
+            float angle = atan2f(diff.y, diff.x);
+            _playerMissileSprite.rotation = 90.0f - CC_RADIANS_TO_DEGREES(angle);
+            
+            _playerMissileSprite.position = _playerSprite.position;
+            _playerMissileSprite.visible = YES;
+            
+            float adjacent, opposite;
+            CGPoint destination;
+            
+            //1
+            if (angle <= -M_PI_4 && angle > -3.0f * M_PI_4)
+            {
+                // Shoot down
+                angle = M_PI_2 - angle;
+                adjacent = _playerMissileSprite.position.y + Margin;
+                opposite = tanf(angle) * adjacent;
+                destination = ccp(_playerMissileSprite.position.x - opposite, -Margin);
+            }
+            else if (angle > M_PI_4 && angle <= 3.0f * M_PI_4)
+            {
+                // Shoot up
+                angle = M_PI_2 - angle;
+                adjacent = _winSize.height - _playerMissileSprite.position.y + Margin;
+                opposite = tanf(angle) * adjacent;
+                destination = ccp(_playerMissileSprite.position.x + opposite, _winSize.height + Margin);
+            }
+            else if (angle <= M_PI_4 && angle > -M_PI_4)
+            {
+                // Shoot right
+                adjacent = _winSize.width - _playerMissileSprite.position.x + Margin;
+                opposite = tanf(angle) * adjacent;
+                destination = ccp(_winSize.width + Margin, _playerMissileSprite.position.y + opposite);
+            }
+            else  // angle > 3.0f * M_PI_4 || angle <= -3.0f * M_PI_4
+            {
+                // Shoot left	
+                adjacent = _playerMissileSprite.position.x + Margin;
+                opposite = tanf(angle) * adjacent;
+                destination = ccp(-Margin, _playerMissileSprite.position.y - opposite);
+            }
+            
+            
+            //2
+            float hypotenuse = sqrtf(adjacent*adjacent + opposite*opposite);
+            ccTime duration = hypotenuse / PlayerMissileSpeed;
+            
+            id action = [CCSequence actions:
+                         [CCMoveTo actionWithDuration:duration position:destination],
+                         [CCCallBlock actionWithBlock:^{
+                _playerMissileSprite.visible = NO;
+            }],nil];
+            
+            [_playerMissileSprite runAction:action];
+            [[SimpleAudioEngine sharedEngine] playEffect:@"Shoot.way"];
+        }
     }
 }
 
