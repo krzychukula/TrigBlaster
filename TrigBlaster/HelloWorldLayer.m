@@ -11,6 +11,11 @@ const int MaxHP = 100;
 const float HealthBarWidth = 40.0f;
 const float HealthBarHeight = 4.0f;
 
+const float CannonCollisionRadius = 20.0f;
+const float PlayerCollisionRadius = 10.0f;
+const float CannonCollisionDamping = 0.8f;
+const float CannonCollisionSpeed = 200.0f;
+
 @implementation HelloWorldLayer
 {
     CGSize _winSize;
@@ -37,6 +42,8 @@ const float HealthBarHeight = 4.0f;
     int _cannonHP;
     CCDrawNode *_playerHealthBar;
     CCDrawNode *_cannonHealthBar;
+    
+    float _playerSpin;
 }
 
 + (CCScene *)scene
@@ -83,6 +90,8 @@ const float HealthBarHeight = 4.0f;
         
         _playerHP = MaxHP;
         _cannonHP = MaxHP;
+        
+        [[SimpleAudioEngine sharedEngine] preloadEffect:@"Collision.wav"];
     }
     return self;
 }
@@ -115,6 +124,8 @@ const float HealthBarHeight = 4.0f;
     
     [self drawHealthBar:_playerHealthBar hp:_playerHP];
     [self drawHealthBar:_cannonHealthBar hp:_cannonHP];
+    
+    [self checkCollisionOfPlayerWithCannon];
 }
 
 - (void)updatePlayer:(ccTime)dt
@@ -193,6 +204,14 @@ const float HealthBarHeight = 4.0f;
                                     _playerSprite.position.x - HealthBarWidth/2.0f + 0.5f,
                                     _playerSprite.position.y - _playerSprite.contentSize.height - 15.0f + 0.5f);
     
+    _playerSprite.rotation += _playerSpin;
+    if (_playerSpin > 0.0f) {
+        _playerSpin -= 2.0f * 360.0f * dt;
+        if(_playerSpin < 0.0f)
+        {
+            _playerSpin = 0.0f;
+        }
+    }
 }
 
 - (void)updateTurret:(ccTime)dt
@@ -244,6 +263,31 @@ const float HealthBarHeight = 4.0f;
     verts[3].y += 0.5f;
     
     [node drawPolyWithVerts:verts count:4 fillColor:fillColor borderWidth:0.0f borderColor:borderColor];
+}
+
+- (void)checkCollisionOfPlayerWithCannon
+{
+    float deltaX = _playerSprite.position.x - _turretSprite.position.x;
+    float deltaY = _playerSprite.position.y - _turretSprite.position.y;
+    
+    float distance = sqrtf(deltaX*deltaX + deltaY*deltaY);
+    
+    if(distance <= CannonCollisionRadius + PlayerCollisionRadius)
+    {
+        [[SimpleAudioEngine sharedEngine] playEffect:@"Collision.wav"];
+        
+        float angle = atan2f(deltaY, deltaX);
+        
+        _playerSpeedX = cosf(angle) * CannonCollisionSpeed;
+        _playerSpeedY = sinf(angle) * CannonCollisionSpeed;
+        _playerAccelX = 0.0f;
+        _playerAccelY = 0.0f;
+        
+        _playerHP = MAX(0, _playerHP - 20);
+        _cannonHP = MAX(0, _cannonHP - 5);
+        
+        _playerSpin = 180.0f * 2.5f;
+    }
 }
 
 @end
