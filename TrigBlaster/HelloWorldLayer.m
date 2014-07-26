@@ -59,6 +59,11 @@ const float OrbiterCollisionRadius = 20.0f;
     
     CCSprite *_orbiterSprite;
     float _orbiterAngle;
+    
+    CCLabelTTF *_gameOverLabel;
+    CCLayerColor *_darkenLayer;
+    BOOL _gameOver;
+    CFTimeInterval _gameOverElepsed;
 }
 
 + (CCScene *)scene
@@ -154,6 +159,7 @@ const float OrbiterCollisionRadius = 20.0f;
     [self checkCollisionOfPlayerWithCannon];
     
     [self updateOrbiter:delta];
+    [self checkGameOver:delta];
     
 }
 
@@ -330,6 +336,11 @@ const float OrbiterCollisionRadius = 20.0f;
 
 - (void)ccTouchesEnded:(NSSet *)touches withEvent:(UIEvent *)event
 {
+    if (_gameOver) {
+        CCScene *scene = [HelloWorldLayer scene];
+        [[CCDirector sharedDirector] replaceScene:[CCTransitionZoomFlipX transitionWithDuration:0.5f scene:scene]];
+        return;
+    }
     if (CACurrentMediaTime() - _touchTime < 0.3 && !_playerMissileSprite.visible) {
         UITouch *touch = [touches anyObject];
         CGPoint location = [[CCDirector sharedDirector] convertToGL:[touch locationInView:[touch view]]];
@@ -436,6 +447,38 @@ const float OrbiterCollisionRadius = 20.0f;
             
             _orbiterSprite.scale = 2.0f;
             [_orbiterSprite runAction:[CCScaleTo actionWithDuration:0.5f scale:1.0f]];
+        }
+    }
+}
+
+- (void)checkGameOver:(ccTime)dt
+{
+    //1
+    if (_playerHP > 0 && _cannonHP > 0) {
+        return;
+    }
+    
+    if (!_gameOver) {
+        //2
+        _gameOver = YES;
+        _gameOverElepsed = 0.0;
+        self.accelerometerEnabled = NO;
+        
+        //3
+        _darkenLayer = [[CCLayerColor alloc] initWithColor:ccc4(0, 0, 0, 2555)];
+        _darkenLayer.opacity = 0;
+        [self addChild:_darkenLayer];
+        
+        //4
+        NSString *text = (_playerHP == 0) ? @"GAME OVER" : @"Victory!";
+        _gameOverLabel = [[CCLabelTTF alloc] initWithString:text fontName:@"Helvetica" fontSize:24.0f];
+        _gameOverLabel.position = ccp(_winSize.width/2.0f + 0.5f, _winSize.height/2.0f + 50.0f);
+        
+        [self addChild:_gameOverLabel];
+    }else{
+        if (_darkenLayer.opacity < 200) {
+            float newOpacity = fminf(200.0f, _darkenLayer.opacity + 255.0f * dt);
+            _darkenLayer.opacity = newOpacity;
         }
     }
 }
