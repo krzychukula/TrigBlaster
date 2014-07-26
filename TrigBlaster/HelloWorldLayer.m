@@ -3,6 +3,8 @@
 
 const float MaxPlayerAccel = 400.0f;
 const float MaxPlayerSpeed = 200.0f;
+const float BorderCollisionDamping = 0.6f;
+const float RotationBlendFactor = 0.2f;
 
 @implementation HelloWorldLayer
 {
@@ -16,6 +18,9 @@ const float MaxPlayerSpeed = 200.0f;
     float _playerAccelY;
     float _playerSpeedX;
     float _playerSpeedY;
+    
+    float _playerAngle;
+    float _lastAngle;
 }
 
 + (CCScene *)scene
@@ -80,13 +85,67 @@ const float MaxPlayerSpeed = 200.0f;
     float newX = _playerSprite.position.x + _playerSpeedX * dt;
     float newY = _playerSprite.position.y + _playerSpeedY * dt;
     
-    newX = MIN(_winSize.width, MAX(newX, 0));
-    newY = MIN(_winSize.height, MAX(newY, 0));
+    //newX = MIN(_winSize.width, MAX(newX, 0));
+    //newY = MIN(_winSize.height, MAX(newY, 0));
+    
+    BOOL collidedWithVerticalBorder = NO;
+    BOOL collidedWithHorizontalBorder = NO;
+    
+    if(newX < 0.0f)
+    {
+        newX = 0.0f;
+        collidedWithVerticalBorder = YES;
+    }
+    else if(newX > _winSize.width)
+    {
+        newX = _winSize.width;
+        collidedWithVerticalBorder = YES;
+    }
+    
+    if (newY < 0.0f) {
+        newY = 0.0f;
+        collidedWithHorizontalBorder = YES;
+    }
+    else if (newY > _winSize.height)
+    {
+        newY = _winSize.height;
+        collidedWithHorizontalBorder = YES;
+    }
+    
+    if (collidedWithVerticalBorder) {
+        _playerAccelX = -_playerAccelX * BorderCollisionDamping;
+        _playerSpeedX = -_playerSpeedX * BorderCollisionDamping;
+        _playerAccelY = _playerAccelY * BorderCollisionDamping;
+        _playerSpeedY = _playerSpeedY * BorderCollisionDamping;
+    }
+    
+    if (collidedWithHorizontalBorder) {
+        _playerAccelX = _playerAccelX * BorderCollisionDamping;
+        _playerSpeedX = _playerSpeedX * BorderCollisionDamping;
+        _playerAccelY = -_playerAccelY * BorderCollisionDamping;
+        _playerSpeedY = -_playerSpeedY * BorderCollisionDamping;
+    }
     
     _playerSprite.position = ccp(newX, newY);
     
-    float angle = atan2f(_playerSpeedY, _playerSpeedX);
-    _playerSprite.rotation = 90.0f - CC_RADIANS_TO_DEGREES(angle);
+    float speed = sqrtf(_playerSpeedX*_playerSpeedX + _playerSpeedY*_playerSpeedY);
+    if (speed > 40.0f) {
+        float angle = atan2f(_playerSpeedY, _playerSpeedX);
+        
+        //did the angle flip from +Pi to -Pi, or -Pi to +Pi
+        if (_lastAngle < -3.0f && angle > 3.0f)
+        {
+            _playerAngle += M_PI * 2.0f;
+        }
+        else if (_lastAngle > 3.0f && angle < -3.0f)
+        {
+            _playerAngle -= M_PI * 2.0f;
+        }
+        _lastAngle = angle;
+        _playerAngle = angle * RotationBlendFactor + _playerAngle * (1.0f - RotationBlendFactor);
+    }
+    _playerSprite.rotation = 90.0f - CC_RADIANS_TO_DEGREES(_playerAngle);
+    
 }
 
 @end
