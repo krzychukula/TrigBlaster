@@ -7,6 +7,10 @@ const float BorderCollisionDamping = 0.6f;
 const float RotationBlendFactor = 0.2f;
 const float TurretRotationBlendFactor = 0.05f;
 
+const int MaxHP = 100;
+const float HealthBarWidth = 40.0f;
+const float HealthBarHeight = 4.0f;
+
 @implementation HelloWorldLayer
 {
     CGSize _winSize;
@@ -28,6 +32,11 @@ const float TurretRotationBlendFactor = 0.05f;
     
     float _turretLastAngle;
     float _turretAngle;
+    
+    int _playerHP;
+    int _cannonHP;
+    CCDrawNode *_playerHealthBar;
+    CCDrawNode *_cannonHealthBar;
 }
 
 + (CCScene *)scene
@@ -59,6 +68,21 @@ const float TurretRotationBlendFactor = 0.05f;
         _turretSprite = [CCSprite spriteWithFile:@"Turret.png"];
         _turretSprite.position = ccp(_winSize.width/2.0f, _winSize.height/2.0f);
         [self addChild:_turretSprite];
+        
+        _playerHealthBar = [[CCDrawNode alloc] init];
+        _playerHealthBar.contentSize = CGSizeMake(HealthBarWidth, HealthBarHeight);
+        [self addChild:_playerHealthBar];
+        
+        _cannonHealthBar = [[CCDrawNode alloc] init];
+        _cannonHealthBar.contentSize = CGSizeMake(HealthBarWidth, HealthBarHeight);
+        [self addChild:_cannonHealthBar];
+        
+        _cannonHealthBar.position = ccp(
+                                        _cannonSprite.position.x - HealthBarWidth/2.0f + 0.5f,
+                                        _cannonSprite.position.y - _cannonSprite.contentSize.height/2.0f - 10.0f + 05.f);
+        
+        _playerHP = MaxHP;
+        _cannonHP = MaxHP;
     }
     return self;
 }
@@ -88,6 +112,9 @@ const float TurretRotationBlendFactor = 0.05f;
 {
     [self updatePlayer:delta];
     [self updateTurret:delta];
+    
+    [self drawHealthBar:_playerHealthBar hp:_playerHP];
+    [self drawHealthBar:_cannonHealthBar hp:_cannonHP];
 }
 
 - (void)updatePlayer:(ccTime)dt
@@ -162,6 +189,10 @@ const float TurretRotationBlendFactor = 0.05f;
     }
     _playerSprite.rotation = 90.0f - CC_RADIANS_TO_DEGREES(_playerAngle);
     
+    _playerHealthBar.position = ccp(
+                                    _playerSprite.position.x - HealthBarWidth/2.0f + 0.5f,
+                                    _playerSprite.position.y - _playerSprite.contentSize.height - 15.0f + 0.5f);
+    
 }
 
 - (void)updateTurret:(ccTime)dt
@@ -185,6 +216,34 @@ const float TurretRotationBlendFactor = 0.05f;
     _turretAngle = angle * TurretRotationBlendFactor + _turretAngle * (1.0f - TurretRotationBlendFactor);
 
     _turretSprite.rotation = 90.0f - CC_RADIANS_TO_DEGREES(_turretAngle);
+}
+
+- (void)drawHealthBar:(CCDrawNode *)node hp:(int)hp
+{
+    [node clear];
+    
+    CGPoint verts[4];
+    verts[0] = ccp(0.0f, 0.0f);
+    verts[1] = ccp(0.0f, HealthBarHeight - 1.0f);
+    verts[2] = ccp(HealthBarWidth - 1.0f, HealthBarHeight - 1.0f);
+    verts[3] = ccp(HealthBarWidth - 1.0f, 0.0f);
+    
+    ccColor4F clearColor = ccc4f(0.0f, 0.0f, 0.0f, 0.0f);
+    ccColor4F fillColor = ccc4f(113.0f/255.0f, 202.0f/255.0f, 53.0f/255.0f, 1.0f);
+    ccColor4F borderColor = ccc4f(35.0f/255.0f, 28.0f/255.0f, 40.0f/255.0f, 1.0f);
+    
+    [node drawPolyWithVerts:verts count:4 fillColor:clearColor borderWidth:1.0f borderColor:borderColor];
+    
+    verts[0].x += 0.5f;
+    verts[0].y += 0.5f;
+    verts[1].x += 0.5f;
+    verts[1].y -= 0.5f;
+    verts[2].x = (HealthBarWidth - 2.0f)*hp/MaxHP + 0.5f;
+    verts[2].y -= 0.5f;
+    verts[3].x = verts[2].x;
+    verts[3].y += 0.5f;
+    
+    [node drawPolyWithVerts:verts count:4 fillColor:fillColor borderWidth:0.0f borderColor:borderColor];
 }
 
 @end
