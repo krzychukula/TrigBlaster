@@ -66,6 +66,8 @@ const CFTimeInterval DarkenDuration = 2.0;
     CCLayerColor *_darkenLayer;
     BOOL _gameOver;
     CFTimeInterval _gameOverElepsed;
+    
+    float _gameOverDampen;
 }
 
 + (CCScene *)scene
@@ -463,6 +465,7 @@ const CFTimeInterval DarkenDuration = 2.0;
     if (!_gameOver) {
         //2
         _gameOver = YES;
+        _gameOverDampen = 1.0f;
         _gameOverElepsed = 0.0;
         self.accelerometerEnabled = NO;
         
@@ -484,8 +487,11 @@ const CFTimeInterval DarkenDuration = 2.0;
             t = sinf(t * M_PI_2);
             _darkenLayer.opacity = 200.0f * t;
         }
-        float y = fabsf(cosf(_gameOverElepsed * 3.0)) * 50.0f;
+        float y = fabsf(cosf(_gameOverElepsed * 3.0)) * 50.0f * _gameOverDampen;
+        _gameOverDampen = fmaxf(0.0f, _gameOverDampen - 0.3f * dt);
         _gameOverLabel.position = ccp(_gameOverLabel.position.x, _winSize.height/2.0f + y);
+        
+        
     }
 }
 
