@@ -5,6 +5,7 @@ const float MaxPlayerAccel = 400.0f;
 const float MaxPlayerSpeed = 200.0f;
 const float BorderCollisionDamping = 0.6f;
 const float RotationBlendFactor = 0.2f;
+const float TurretRotationBlendFactor = 0.05f;
 
 @implementation HelloWorldLayer
 {
@@ -21,6 +22,12 @@ const float RotationBlendFactor = 0.2f;
     
     float _playerAngle;
     float _lastAngle;
+    
+    CCSprite *_cannonSprite;
+    CCSprite *_turretSprite;
+    
+    float _turretLastAngle;
+    float _turretAngle;
 }
 
 + (CCScene *)scene
@@ -44,6 +51,14 @@ const float RotationBlendFactor = 0.2f;
         self.accelerometerEnabled = YES;
         
         [self scheduleUpdate];
+        
+        _cannonSprite = [CCSprite spriteWithFile:@"Cannon.png"];
+        _cannonSprite.position = ccp(_winSize.width/2.0f, _winSize.height/2.0f);
+        [self addChild:_cannonSprite];
+        
+        _turretSprite = [CCSprite spriteWithFile:@"Turret.png"];
+        _turretSprite.position = ccp(_winSize.width/2.0f, _winSize.height/2.0f);
+        [self addChild:_turretSprite];
     }
     return self;
 }
@@ -72,6 +87,7 @@ const float RotationBlendFactor = 0.2f;
 - (void)update:(ccTime)delta
 {
     [self updatePlayer:delta];
+    [self updateTurret:delta];
 }
 
 - (void)updatePlayer:(ccTime)dt
@@ -146,6 +162,29 @@ const float RotationBlendFactor = 0.2f;
     }
     _playerSprite.rotation = 90.0f - CC_RADIANS_TO_DEGREES(_playerAngle);
     
+}
+
+- (void)updateTurret:(ccTime)dt
+{
+    float deltaX = _playerSprite.position.x - _turretSprite.position.x;
+    float deltaY = _playerSprite.position.y - _turretSprite.position.y;
+    
+
+    float angle = atan2f(deltaY, deltaX);
+        
+    //did the angle flip from +Pi to -Pi, or -Pi to +Pi
+    if (_turretLastAngle < -3.0f && angle > 3.0f)
+    {
+        _turretAngle += M_PI * 2.0f;
+    }
+    else if (_turretLastAngle > 3.0f && angle < -3.0f)
+    {
+        _turretAngle -= M_PI * 2.0f;
+    }
+    _turretLastAngle = angle;
+    _turretAngle = angle * TurretRotationBlendFactor + _turretAngle * (1.0f - TurretRotationBlendFactor);
+
+    _turretSprite.rotation = 90.0f - CC_RADIANS_TO_DEGREES(_turretAngle);
 }
 
 @end
