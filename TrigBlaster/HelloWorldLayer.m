@@ -18,6 +18,7 @@ const float CannonCollisionSpeed = 200.0f;
 
 const float Margin = 20.0f;
 const float PlayerMissileSpeed = 300.0f;
+const float CannonHitRadius = 25.0f;
 
 @implementation HelloWorldLayer
 {
@@ -133,12 +134,14 @@ const float PlayerMissileSpeed = 300.0f;
 - (void)update:(ccTime)delta
 {
     [self updatePlayer:delta];
+    [self updatePlayerMissile:delta];
     [self updateTurret:delta];
     
     [self drawHealthBar:_playerHealthBar hp:_playerHP];
     [self drawHealthBar:_cannonHealthBar hp:_cannonHP];
     
     [self checkCollisionOfPlayerWithCannon];
+    
 }
 
 - (void)updatePlayer:(ccTime)dt
@@ -373,6 +376,23 @@ const float PlayerMissileSpeed = 300.0f;
             
             [_playerMissileSprite runAction:action];
             [[SimpleAudioEngine sharedEngine] playEffect:@"Shoot.way"];
+        }
+    }
+}
+
+- (void)updatePlayerMissile:(ccTime)dt
+{
+    if (_playerMissileSprite.visible) {
+        float deltaX = _playerMissileSprite.position.x - _turretSprite.position.x;
+        float deltaY = _playerMissileSprite.position.y - _turretSprite.position.y;
+        
+        float distance = sqrtf(deltaX*deltaX + deltaY*deltaY);
+        if (distance < CannonHitRadius) {
+            [[SimpleAudioEngine sharedEngine] playEffect:@"Hit.wav"];
+            _cannonHP = MAX(0, _cannonHP - 10);
+            
+            _playerMissileSprite.visible = NO;
+            [_playerMissileSprite stopAllActions];
         }
     }
 }
